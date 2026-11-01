@@ -1,0 +1,46 @@
+name: Import Codeforces solutions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/import-codeforces.yml"
+      - "scripts/import_codeforces.py"
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CODEFORCES_HANDLE: yaduvendukunal
+      CODEFORCES_API_KEY: ${{ secrets.CODEFORCES_API_KEY }}
+      CODEFORCES_API_SECRET: ${{ secrets.CODEFORCES_API_SECRET }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Import accepted solutions
+        run: python scripts/import_codeforces.py
+
+      - name: Commit imported solutions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- solutions .codeforces_sync_state.json
+          if git diff --cached --quiet; then
+            echo "No new solution files."
+          else
+            git commit -m "Sync accepted Codeforces solutions"
+            git push
+          fi
